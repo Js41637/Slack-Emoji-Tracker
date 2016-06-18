@@ -1,4 +1,3 @@
-import Promise from 'bluebird'
 import needle from 'needle'
 import moment from 'moment'
 import config from '../config.json'
@@ -22,6 +21,7 @@ const slack = new SlackAPI({
 slack.on('message', data => {
   if (data.type != 'message' || !data.text || !data.channel || data.subtype) return;
 
+  // Ignore the bots own messages and other bots
   if (data.user == slack.slackData.self.id || data.user in config.ignoredUsers) return;
 
   if (data.text.charAt(0) == config.prefix) {
@@ -36,6 +36,7 @@ slack.on('message', data => {
         break;
       case 'topemojis':
         Emoji.Find({}, { limit: 10 }).then(resp => {
+          if (!resp.length) return slack.sendMsg(data.channel, 'Dunno')
           let out = [`*Top ${resp.length} most used Emojis:*`]
           resp.forEach(e => {
             out.push(`:${e.name}: - ${e.useCount}`)
@@ -51,17 +52,17 @@ slack.on('message', data => {
       let match = data.text.match(/(:\w+:)/g)
       let found = {}
       match.forEach(emoji => {
-        if (emoji in found) return;
+        if (emoji in found) return; // So it doesn't count more than 1 in a message
         found[emoji] = true
         let e = emoji.slice(1, -1)
         if (e in emojiList || e in customEmojiList) {
           Emoji.findOneByName(e).then(resp => {
-            let entry = resp ? resp : new Emoji()
+            let entry = resp ? resp : new Emoji() // Edit or create new entry
             entry.name = e
             entry.lastUsed = moment().utc().format()
             entry.lastUsedBy = data.user
             entry.useCount++;
-            entry.Persist()
+            entry.Persist() // Save dat shit
           })
         } else {
           console.log(emoji, "is not in any list")
