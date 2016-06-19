@@ -22,7 +22,7 @@ slack.on('message', data => {
   if (data.type != 'message' || !data.text || !data.channel || data.subtype) return;
 
   // Ignore the bots own messages and other bots
-  if (data.user == slack.slackData.self.id || data.user in config.ignoredUsers) return;
+  if (data.user == slack.slackData.self.id || data.user in config.ignoredUsers || data.user == 'USLACKBOT') return;
 
   if (data.text.charAt(0) == config.prefix) {
     let command = data.text.substring(1).split(' ')[0]
@@ -72,19 +72,21 @@ slack.on('message', data => {
   }
 })
 
+// Update our cache of custom emoji if any change
 slack.on('emoji_changed', data => {
-  console.log(_moment(), 'on_emoji_change')
-  if (!data.subtype) return getCustomEmoji()
+  console.log(_moment(), 'on_emoji_change', data)
+  if (!data.subtype) return getCustomEmoji() // If no subtype slack suggests fetching the whole list again
   else if (data.subtype == 'remove') {
     data.names.forEach(emoji => delete customEmojiList[emoji])
   } else if (data.subtype == 'add') {
     if (data.name in customEmojiList) return console.log(_moment(), "New emoji already in the list?", data.name)
     else customEmojiList[data.name] = data.value
   } else {
-    console.error(_moment(), "Got an abnormal emoji_changed event")
+    console.error(_moment(), "Got an abnormal emoji_changed event", data)
   }
 })
 
+// Grab any Custom Emoji on a team
 const getCustomEmoji = (attempt) => {
   console.log(_moment(), 'getCustomEmoji')
   needle.get(`https://slack.com/api/emoji.list?token=${config.slackBotToken}`, (err, resp, body) => {
@@ -97,8 +99,10 @@ const getCustomEmoji = (attempt) => {
   })
 }
 
+// Helper function to add date to logs
 const _moment = () => {
   return moment().format('YYYY-MM-DD-HH:mm:ss')
 }
 
+console.log(_moment(), "Starting up")
 getCustomEmoji()
