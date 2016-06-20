@@ -8,6 +8,10 @@ const dbFile = path.join(dbDir, 'database.sqlite')
 if (!fs.existsSync(dbDir))
   fs.mkdirSync(dbDir)
 
+export function executeQuery(query) {
+  return CRUD.executeQuery(query)
+}
+
 export function Emoji() {
   CRUD.Entity.call(this)
 }

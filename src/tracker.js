@@ -3,7 +3,7 @@ import moment from 'moment'
 import config from '../config.json'
 import SlackAPI from 'slackbotapi'
 import emojiList from '../emojiList.json'
-import { Emoji } from './database'
+import { Emoji, executeQuery } from './database'
 
 if (!config.prefix || !config.slackBotToken) {
   console.error("Invalid config, please fill in the first 2 required config fields")
@@ -42,6 +42,19 @@ slack.on('message', data => {
             out.push(`:${e.name}: - ${e.useCount}`)
           })
           slack.sendMsg(data.channel, out.join('\n'))
+        })
+        break;
+      case 'emojistats':
+        executeQuery('SELECT SUM(useCount) AS total, COUNT(*) AS count, lastUsed FROM Emoji').then(count => {
+          executeQuery('SELECT name as name, lastUsed as date, lastUsedBy as user FROM Emoji ORDER BY lastUsed DESC LIMIT 1').then(latest => {
+            try {
+              let results = Object.assign(count.next().row, latest.next().row)
+              slack.sendMsg(data.channel, `I have recorded ${results.count} different Emojis being used ${results.total} times with the last Emoji being :${results.name}: from ${slack.getUser(results.user).name || 'Unknown'} ${moment().to(results.date)}`)
+            } catch (e) {
+              console.error("Error counting stuff")
+              slack.sendMsg(data.channel, `Error counting shit`)
+            }
+          })
         })
         break;
       default:
