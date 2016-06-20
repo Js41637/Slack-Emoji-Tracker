@@ -26,7 +26,7 @@ slack.on('message', data => {
 
   if (data.text.charAt(0) == config.prefix) {
     let command = data.text.substring(1).split(' ')[0]
-      //let context = data.text.split(' ').slice(1).join(' ')
+    let context = data.text.split(' ').slice(1).join(' ') || undefined
 
     switch (command.toLowerCase()) {
       case 'topemoji':
@@ -57,10 +57,28 @@ slack.on('message', data => {
           })
         })
         break;
+      case 'deletecount':
+        if (data.user != config.admin) return slack.sendMsg(data.channel, `Access Denied`)
+        if (!context) return
+        var toDelete = context.split(' ')[0]
+        var delAmount = parseInt(context.split(' ')[1])
+        if (toDelete && delAmount && !isNaN(delAmount)) {
+          var emojiName = toDelete.match(/(:\w+:)/) ? toDelete.slice(1, -1) : toDelete
+          Emoji.findOneByName(emojiName).then(resp => {
+            if (resp) {
+              console.log(_moment(), "Deleting", delAmount, emojiName)
+              resp.useCount -= delAmount
+              if (resp.useCount < 0) resp.useCount = 0
+              resp.Persist()
+              slack.sendMsg(data.channel, `Success! New count for :${emojiName}: is at ${resp.useCount}`)
+            } else slack.sendMsg(data.channel, `No emoji found by that name`)
+          })
+        } else slack.sendMsg(data.channel, `Error: deletecount <emoji> <amount>`)
+        break;
       default:
         return
     }
-  } else {
+  } else if (data.channel.charAt(0) != 'D') {
     if (data.text.match(/(:\w+:)/g)) {
       let match = data.text.match(/(:\w+:)/g)
       let found = {}
