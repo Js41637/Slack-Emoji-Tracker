@@ -28,7 +28,7 @@ export default function parseCommand(user, text, getUser) {
         executeQuery('SELECT COUNT(*) as total, COUNT(DISTINCT name) as count, user, date, name from Emoji ORDER BY date DESC LIMIT 1').then(results => {
           let stats = results.next()
           console.log(stats)
-          return resolve(`I have recorded ${stats.row.count} different Emojis being used ${stats.row.total} times with the last Emoji being :${stats.row.name}: from ${getUser(stats.row.user).name || 'Unknown'} ${moment().to(stats.row.date)}`)
+          return resolve(`I have recorded ${stats.row.count} different Emojis being used ${stats.row.total} times with the last Emoji being :${stats.row.name}: from ${stats.row.user ? getUser(stats.row.user).name : 'Unknown'} ${moment.isValid(stats.row.date) ? moment().to(stats.row.date) : 'unknown time ago'}`)
         })
         break;
       default:
