@@ -25,10 +25,15 @@ export default function parseCommand(user, text, getUser) {
         })
         break;
       case 'emojistats':
-        executeQuery('SELECT COUNT(*) as total, COUNT(DISTINCT name) as count, user, date, name from Emoji ORDER BY date DESC LIMIT 1').then(results => {
-          let stats = results.next()
-          console.log(stats)
-          return resolve(`I have recorded ${stats.row.count} different Emojis being used ${stats.row.total} times with the last Emoji being :${stats.row.name}: from ${stats.row.user ? getUser(stats.row.user).name : 'Unknown'} ${moment(stats.row.date).isValid() ? moment().to(stats.row.date) : 'unknown time ago'}`)
+        executeQuery('SELECT COUNT(*) as total, COUNT(DISTINCT name) as count FROM Emoji').then(count => {
+          executeQuery('SELECT user, date, name from Emoji ORDER BY date DESC LIMIT 1').then(user => {
+            try {
+              let stats = Object.assign(count.next().row, user.next().row)
+              return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? getUser(stats.user).name : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
+            } catch (e) {
+              return resolve("Error parsing stats")
+            }
+          })
         })
         break;
       default:
