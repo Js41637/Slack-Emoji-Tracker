@@ -9,7 +9,7 @@ if (!fs.existsSync(dbDir))
   fs.mkdirSync(dbDir)
 
 export function executeQuery(query) {
-  return CRUD.executeQuery(query)
+  return CRUD.executeQuery(query) // dont even
 }
 
 export function Emoji() {
@@ -19,10 +19,10 @@ export function Emoji() {
 CRUD.define(Emoji, {
   table: 'Emoji',
   primary: 'emojiId',
-  fields: ['emojiId', 'name', 'lastUsed', 'lastUsedBy', 'useCount', 'reactionCount'],
-  orderProperty: 'useCount',
+  fields: ['emojiId', 'name', 'user', 'date'],
+  orderProperty: 'date',
   orderDirection: 'DESC',
-  createStatement: 'CREATE TABLE Emoji (emojiId INTEGER PRIMARY KEY NOT NULL, name VARCHAR(128) NOT NULL, lastUsed DATETIME, lastUsedBy VARCHAR(128), useCount INTEGER DEFAULT 0, reactionCount INTEGER DEFAULT 0)'
+  createStatement: 'CREATE TABLE Emoji (emojiId INTEGER PRIMARY KEY NOT NULL, name VARCHAR(128) NOT NULL, user VARCHAR(128) NOT NULL, date DATETIME NOT NULL)'
 })
 
 CRUD.setAdapter(new CRUD.SQLiteAdapter(dbFile, {
