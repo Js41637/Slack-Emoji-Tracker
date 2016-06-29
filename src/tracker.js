@@ -28,8 +28,8 @@ slack.on('message', data => {
       slack.sendMsg(data.channel, resp)
     })
   } else if (data.channel.charAt(0) != 'D') {
-    if (data.text.match(/(:(\+1|\w+|(\w+\-\w+)):)/g)) {
-      let match = data.text.match(/(:(\+1|\w+|(\w+\-\w+)):)/g)
+    if (data.text.match(/:[a-z0-9\-\+]+\:/g)) {
+      let match = data.text.match(/:[a-z0-9\-\+]+\:/g)
       let found = {}
       match.forEach(emoji => {
         if (emoji in found) return; // So it doesn't count more than 1 in a message
