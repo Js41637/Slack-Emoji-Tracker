@@ -2,7 +2,7 @@ import needle from 'needle'
 import moment from 'moment'
 import config from '../config.json'
 import SlackAPI from 'slackbotapi'
-import emojiList from '../emojiList.json'
+import originalEmojiList from '../emojiList.json'
 import { Emoji } from './database'
 import parseCommand from './commands'
 
@@ -17,6 +17,9 @@ const slack = new SlackAPI({
   autoReconnect: true
 })
 
+const eRegex = /:[a-zA-Z0-9-_+]+:(:skin-tone-[2-6]:)?/g //thnx slack
+var emojiList = originalEmojiList
+
 slack.on('message', data => {
   if (data.type != 'message' || !data.text || !data.channel || data.subtype) return;
 
@@ -27,16 +30,16 @@ slack.on('message', data => {
     parseCommand(data.user, data.text, ::slack.getUser).then(resp => {
       slack.sendMsg(data.channel, resp)
     })
-  } else if (data.channel.charAt(0) != 'D') {
-    if (data.text.match(/:[a-z0-9\-\+]+\:/g)) {
-      let match = data.text.match(/:[a-z0-9\-\+]+\:/g)
+  } else if (data.channel.charAt(0) == 'D') {
+    if (data.text.match(eRegex)) {
+      let match = data.text.match(eRegex)
       let found = {}
       match.forEach(emoji => {
-        if (emoji in found) return; // So it doesn't count more than 1 in a message
-        found[emoji] = true
+        let e = emoji.slice(1, -1).split('::')[0] // dont count emojis with different skintones
+        if (e in found) return; // So it doesn't count more than 1 in a message
+        found[e] = true
         console.log(_moment(), 'Matched emoji', emoji)
 
-        let e = emoji.slice(1, -1)
         if (e in emojiList) {
           // check if emoji is an alias of another emoji
           let split = emojiList[e].split(':')
@@ -74,6 +77,7 @@ const getCustomEmoji = (attempt) => {
   console.log(_moment(), 'getCustomEmoji')
   needle.get(`https://slack.com/api/emoji.list?token=${config.slackBotToken}`, (err, resp, body) => {
     if (!err && body.ok) {
+      emojiList = originalEmojiList // reset emoji list
       Object.assign(emojiList, body.emoji)
     } else {
       if (!attempt) getCustomEmoji(true)
@@ -87,5 +91,12 @@ const _moment = () => {
   return moment().format('YYYY-MM-DD-HH:mm:ss')
 }
 
+// Clean refresh every 24 hours
+setInterval(() => {
+  console.log(_moment(), 'updateInterval getCustomEmoji')
+  getCustomEmoji()
+}, 8.64e+7);
+
+// Fetches custom emoji list on startup
 console.log(_moment(), "Starting up")
 getCustomEmoji()
