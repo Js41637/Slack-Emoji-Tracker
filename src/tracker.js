@@ -30,7 +30,7 @@ slack.on('message', data => {
     parseCommand(data.user, data.text, ::slack.getUser).then(resp => {
       slack.sendMsg(data.channel, resp)
     })
-  } else if (data.channel.charAt(0) == 'D') {
+  } else if (data.channel.charAt(0) != 'D') {
     if (data.text.match(eRegex)) {
       let match = data.text.match(eRegex)
       let found = {}
