@@ -17,7 +17,11 @@ const slack = new SlackAPI({
   autoReconnect: true
 })
 
-const eRegex = /:[a-zA-Z0-9-_+]+:(:skin-tone-[2-6]:)?/g //thnx slack
+// totally made these bad bois myself #regexiseasy
+const emojiRegex = /:[a-zA-Z0-9-_+]+:(:skin-tone-[2-6]:)?/g
+const codeBlockRegex = /(^|\s|[_*\?\.,\-!\^;:{(\[%$#+=\u2000-\u206F\u2E00-\u2E7F"])```([\s\S]*?)?```(?=$|\s|[_*\?\.,\-!\^;:})\]%$#+=\u2000-\u206F\u2E00-\u2E7F…"])/g
+const codeRegex = /(^|\s|[\?\.,\-!\^;:{(\[%$#+=\u2000-\u206F\u2E00-\u2E7F"])\`(.*?\S *)?\`/g
+
 var emojiList = originalEmojiList
 
 slack.on('message', data => {
@@ -30,9 +34,11 @@ slack.on('message', data => {
     parseCommand(data.user, data.text, ::slack.getUser).then(resp => {
       slack.sendMsg(data.channel, resp)
     })
-  } else if (data.channel.charAt(0) != 'D') {
-    if (data.text.match(eRegex)) {
-      let match = data.text.match(eRegex)
+  } else if (data.channel.charAt(0) == 'D') {
+    var newMessage = data.text.replace(data.text.match(codeBlockRegex), "")
+    newMessage = newMessage.replace(newMessage.match(codeRegex), "").trim()
+    if (newMessage.match(emojiRegex)) {
+      let match = newMessage.match(emojiRegex)
       let found = {}
       match.forEach(emoji => {
         let e = emoji.slice(1, -1).split('::')[0] // dont count emojis with different skintones
