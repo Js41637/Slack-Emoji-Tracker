@@ -33,6 +33,7 @@ export default function parseCommand(user, text, getUser) {
               let stats = Object.assign(count.next().row, user.next().row)
               return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? getUser(stats.user).name : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
             } catch (e) {
+              console.error(_moment(), "Error returning emoji stats, either there is no stats or something went horribly wrong", e)
               return resolve("Error parsing stats")
             }
           })
@@ -59,6 +60,7 @@ export default function parseCommand(user, text, getUser) {
                 out.push(`Not including ${noUsers} Emoji with no user data`)
                 return resolve(out.join('\n'))
               } catch (e) {
+                console.error(_moment(), "Error fetching user stats, either user has no stats or something went horrible wrong", e)
                 return resolve("No stats for this user, I think, or something went horribly wrong")
               }
             })
@@ -72,6 +74,6 @@ export default function parseCommand(user, text, getUser) {
 }
 
 // Helper function to add date to logs
-//const _moment = () => {
-//  return moment().format('YYYY-MM-DD-HH:mm:ss')
-//}
+const _moment = () => {
+  return moment().format('YYYY-MM-DD-HH:mm:ss')
+}

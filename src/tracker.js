@@ -38,20 +38,21 @@ slack.on('message', data => {
         let e = emoji.slice(1, -1).split('::')[0] // dont count emojis with different skintones
         if (e in found) return; // So it doesn't count more than 1 in a message
         found[e] = true
-        console.log(_moment(), 'Matched emoji', emoji)
 
         if (e in emojiList) {
           // check if emoji is an alias of another emoji
           let split = emojiList[e].split(':')
-          e = (split[0] == 'alias' && split[1] && split[1] in emojiList) ? split[1] : e
+          let ee = (split[0] == 'alias' && split[1] && split[1] in emojiList) ? split[1] : e
+
+          console.log(_moment(), `Matched Emoji: ${emoji} | Clean: ${e} | Alias: ${ee}`)
 
           let entry = new Emoji() // Create new entry
-          entry.name = e
+          entry.name = ee
           entry.date = moment().utc().format()
           entry.user = data.user
           entry.Persist() // Save dat shit
         } else {
-          console.log(emoji, "is not in the list")
+          console.log(_moment(), "Matched Emoji but it wasn't in our list", emoji, e)
         }
       })
     }
