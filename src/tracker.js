@@ -6,6 +6,8 @@ import originalEmojiList from '../emojiList.json'
 import { Emoji } from './database'
 import parseCommand from './commands'
 
+let DEVMODE = process.argv[2] == '--dev' ? true : false
+
 if (!config.prefix || !config.slackBotToken) {
   console.error("Invalid config, please fill in the first 2 required config fields")
   process.exit()
@@ -34,7 +36,7 @@ slack.on('message', data => {
     parseCommand(data.user, data.text, ::slack.getUser).then(resp => {
       slack.sendMsg(data.channel, resp)
     })
-  } else if (data.channel.charAt(0) != 'D') {
+  } else if ((DEVMODE && data.channel.charAt(0) == 'D') || (!DEVMODE && data.channel.charAt(0) != 'D')) {
     var newMessage = data.text.replace(data.text.match(codeBlockRegex), "")
     newMessage = newMessage.replace(newMessage.match(codeRegex), "").trim()
     if (newMessage.match(emojiRegex)) {
@@ -95,7 +97,7 @@ const getCustomEmoji = (attempt) => {
 
 // Helper function to add date to logs
 const _moment = () => {
-  return moment().format('YYYY-MM-DD-HH:mm:ss')
+  return moment().format('YYYY-MM-DD hh:mm:ssS')
 }
 
 // Clean refresh every 24 hours
@@ -105,5 +107,5 @@ setInterval(() => {
 }, 8.64e+7);
 
 // Fetches custom emoji list on startup
-console.log(_moment(), "Starting up")
+console.log(_moment(), "Starting up", DEVMODE ? '- Dev Mode' : '')
 getCustomEmoji()
