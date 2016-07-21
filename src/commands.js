@@ -33,7 +33,7 @@ export default function parseCommand(user, text, getUser) {
               let stats = Object.assign(count.next().row, user.next().row)
               return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? getUser(stats.user).name : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
             } catch (e) {
-              console.error(_moment(), "Error returning emoji stats, either there is no stats or something went horribly wrong", e)
+              console.error(_moment(), "Error returning emoji stats, either there is no stats or something went horribly wrong \n ## ERROR \n", e, '\n # END ERROR')
               return resolve("Error parsing stats")
             }
           })
@@ -60,12 +60,20 @@ export default function parseCommand(user, text, getUser) {
                 out.push(`Not including ${noUsers} Emoji with no user data`)
                 return resolve(out.join('\n'))
               } catch (e) {
-                console.error(_moment(), "Error fetching user stats, either user has no stats or something went horrible wrong", e)
+                console.error(_moment(), "Error fetching user stats, either user has no stats or something went horrible wrong \n ## ERROR \n", e, '\n # END ERROR')
                 return resolve("No stats for this user, I think, or something went horribly wrong")
               }
             })
           })
           break;
+        }
+      case 'emojiuptime':
+        {
+          const time = moment.duration(parseInt(process.uptime(), 10), 'seconds')
+          const duration = type => time[type]() !== 0 ? `${time[type]()} ${type.slice(0, -1)}${(time[type]() > 1 ? 's' : '')}` : false
+          const getUpTime = (firstHalf, seconds) => firstHalf.replace(/, /, '').length !== 0 ? `${firstHalf} and ${seconds || '0 seconds'}` : seconds
+
+          return resolve(`Emoji Tracking has been flying smooth for ${getUpTime(['days', 'hours', 'minutes'].map(duration).filter(Boolean).join(', '), duration('seconds'))}`)
         }
       default:
         return

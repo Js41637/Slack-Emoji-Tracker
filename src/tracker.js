@@ -109,3 +109,32 @@ setInterval(() => {
 // Fetches custom emoji list on startup
 console.log(_moment(), "Starting up", DEVMODE ? '- Dev Mode' : '')
 getCustomEmoji()
+
+const sendErrorToDebugChannel = (type, error) => {
+  if (error && error.message && error.stack) {
+    console.error(_moment(), "Caught Error:", type, error.message, error.stack);
+    if (config.debugChannel) {
+      let message = 'Slack-Emoji-Tracker: Caught ' + type + ' ```' + error.message + '\n' + error.stack + '```';
+      postMessage(message)
+    } else {
+      console.error(_moment(), "Caught Error:", type, error)
+      if (config.debugChannel) postMessage("Slack-Emoji-Tracker: Caught " + type + ' ```' + error + '```')
+    }
+  }
+}
+
+const postMessage = message => needle.post('https://slack.com/api/chat.postMessage', {
+  text: message,
+  channel: config.debugChannel,
+  as_user: 'true',
+  token: config.slackBotToken
+})
+
+process.on('uncaughtException', err => {
+  sendErrorToDebugChannel('uncaughtException', err)
+  setTimeout(() => process.exit(1), 500)
+})
+
+process.on('unhandledRejection', err => sendErrorToDebugChannel('unhandledRejection', err))
+
+process.on('rejectionHandled', err => sendErrorToDebugChannel('handledRejection', err))
