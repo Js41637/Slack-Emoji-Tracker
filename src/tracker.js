@@ -81,6 +81,19 @@ slack.on('emoji_changed', data => {
   }
 })
 
+// Catch shit
+slack.on('error', data => {
+  console.error(_moment(), 'SlackAPI Error - Error', data)
+  sendErrorToDebugChannel('slackAPIError', data)
+  setTimeout(() => process.exit(1), 1000)
+})
+
+slack.on('close', data => {
+  console.error(_moment(), 'SlackAPI Error - Closed Connection', data)
+  sendErrorToDebugChannel('closedConnection', data)
+})
+
+
 // Grab any Custom Emoji on a team
 const getCustomEmoji = (attempt) => {
   console.log(_moment(), 'getCustomEmoji')
@@ -132,7 +145,7 @@ const postMessage = message => needle.post('https://slack.com/api/chat.postMessa
 
 process.on('uncaughtException', err => {
   sendErrorToDebugChannel('uncaughtException', err)
-  setTimeout(() => process.exit(1), 500)
+  setTimeout(() => process.exit(1), 1000)
 })
 
 process.on('unhandledRejection', err => sendErrorToDebugChannel('unhandledRejection', err))
