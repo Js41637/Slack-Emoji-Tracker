@@ -81,19 +81,6 @@ slack.on('emoji_changed', data => {
   }
 })
 
-// Catch shit
-slack.on('error', data => {
-  console.error(_moment(), 'SlackAPI Error - Error', data)
-  sendErrorToDebugChannel('slackAPIError', data)
-  setTimeout(() => process.exit(1), 1000)
-})
-
-slack.on('close', data => {
-  console.error(_moment(), 'SlackAPI Error - Closed Connection', data)
-  sendErrorToDebugChannel('closedConnection', data)
-})
-
-
 // Grab any Custom Emoji on a team
 const getCustomEmoji = (attempt) => {
   console.log(_moment(), 'getCustomEmoji')
@@ -125,14 +112,16 @@ getCustomEmoji()
 
 const sendErrorToDebugChannel = (type, error) => {
   if (error && error.message && error.stack) {
+    console.log("Valid error")
     console.error(_moment(), "Caught Error:", type, error.message, error.stack);
     if (config.debugChannel) {
       let message = 'Slack-Emoji-Tracker: Caught ' + type + ' ```' + error.message + '\n' + error.stack + '```';
       postMessage(message)
-    } else {
-      console.error(_moment(), "Caught Error:", type, error)
-      if (config.debugChannel) postMessage("Slack-Emoji-Tracker: Caught " + type + ' ```' + error + '```')
     }
+  } else {
+    console.log("Other Error")
+    console.error(_moment(), "Caught Error:", type, error)
+    if (config.debugChannel) postMessage(`Slack-Emoji-Tracker: Caught ${type} \`\`\`${typeof error == 'string' ? error : JSON.stringify(error)} \`\`\``)
   }
 }
 
@@ -141,6 +130,20 @@ const postMessage = message => needle.post('https://slack.com/api/chat.postMessa
   channel: config.debugChannel,
   as_user: 'true',
   token: config.slackBotToken
+})
+
+// Catch shit
+slack.on('error', data => {
+  if (typeof data == 'object' && data.ok) return
+  console.error(_moment(), 'SlackAPI Error - Error', data)
+  sendErrorToDebugChannel('slackAPIError', data)
+  setTimeout(() => process.exit(1), 1000)
+})
+
+slack.on('close', data => {
+  console.error(_moment(), 'SlackAPI Error - Closed Connection', data)
+  sendErrorToDebugChannel('closedConnection', data)
+  setTimeout(() => process.exit(1), 1000)
 })
 
 process.on('uncaughtException', err => {
