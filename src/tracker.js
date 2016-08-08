@@ -112,14 +112,12 @@ getCustomEmoji()
 
 const sendErrorToDebugChannel = (type, error) => {
   if (error && error.message && error.stack) {
-    console.log("Valid error")
     console.error(_moment(), "Caught Error:", type, error.message, error.stack);
     if (config.debugChannel) {
       let message = 'Slack-Emoji-Tracker: Caught ' + type + ' ```' + error.message + '\n' + error.stack + '```';
       postMessage(message)
     }
   } else {
-    console.log("Other Error")
     console.error(_moment(), "Caught Error:", type, error)
     if (config.debugChannel) postMessage(`Slack-Emoji-Tracker: Caught ${type} \`\`\`${typeof error == 'string' ? error : JSON.stringify(error)} \`\`\``)
   }
