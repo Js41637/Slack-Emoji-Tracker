@@ -2,10 +2,9 @@ import Promise from 'bluebird'
 import moment from 'moment'
 //import config from '../config.json'
 import { executeQuery } from './database'
+import _ from 'lodash'
 
-const noUsers = 281
-
-export default function parseCommand(user, text, getUser) {
+export default function parseCommand(user, text, users) {
   return new Promise(resolve => {
     let command = text.substring(1).split(' ')[0]
     let context = text.split(' ').slice(1).join(' ') || undefined
@@ -31,7 +30,7 @@ export default function parseCommand(user, text, getUser) {
           executeQuery('SELECT user, date, name from Emoji ORDER BY date DESC LIMIT 1').then(user => {
             try {
               let stats = Object.assign(count.next().row, user.next().row)
-              return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? getUser(stats.user).name : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
+              return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? _.get(users, stats.user + '.name', 'Unknown') : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
             } catch (e) {
               console.error(_moment(), "Error returning emoji stats, either there is no stats or something went horribly wrong \n ## ERROR \n", e, '\n # END ERROR')
               return resolve("Error parsing stats")
@@ -45,7 +44,8 @@ export default function parseCommand(user, text, getUser) {
         {
           if (!context) return resolve("Specify a user pls")
 
-          let dude = getUser(context.slice(0, 2) == "<@" ? context.slice(2, -1) : context)
+          let id = context.slice(0, 2) == "<@" ? context.slice(2, -1) : null
+          let dude = id ? users[id] : _.find(users, { name: context })
           let limit = 6
           if (!dude) return resolve("No user by dat name m8")
           executeQuery('SELECT name, date from Emoji WHERE user = \'' + dude.id + '\' ORDER BY date DESC LIMIT 1').then(newest => {
@@ -57,7 +57,6 @@ export default function parseCommand(user, text, getUser) {
                 topemoji.forEach(e => {
                   out.push(`:${e.name}: - ${e.count}`)
                 })
-                out.push(`Not including ${noUsers} Emoji with no user data`)
                 return resolve(out.join('\n'))
               } catch (e) {
                 console.error(_moment(), "Error fetching user stats, either user has no stats or something went horrible wrong \n ## ERROR \n", e, '\n # END ERROR')

@@ -1,7 +1,7 @@
+import { RtmClient, MemoryDataStore, RTM_EVENTS, CLIENT_EVENTS } from '@slack/client'
 import needle from 'needle'
 import moment from 'moment'
 import config from '../config.json'
-import SlackAPI from 'slackbotapi'
 import originalEmojiList from '../emojiList.json'
 import { Emoji } from './database'
 import parseCommand from './commands'
@@ -13,11 +13,13 @@ if (!config.prefix || !config.slackBotToken) {
   process.exit()
 }
 
-const slack = new SlackAPI({
-  token: config.slackBotToken,
-  logging: false,
-  autoReconnect: true
+const rtm = new RtmClient(config.slackBotToken, {
+  logLevel: 'error',
+  dataStore: new MemoryDataStore(),
+  autoReconnect: true,
+  autoMark: false
 })
+rtm.start()
 
 // totally made these bad bois myself #regexiseasy
 const emojiRegex = /:[a-zA-Z0-9-_+]+:(:skin-tone-[2-6]:)?/g
@@ -26,15 +28,15 @@ const codeRegex = /(^|\s|[\?\.,\-!\^;:{(\[%$#+=\u2000-\u206F\u2E00-\u2E7F"])\`(.
 
 var emojiList = originalEmojiList
 
-slack.on('message', data => {
+rtm.on(RTM_EVENTS.MESSAGE, data => {
   if (data.type != 'message' || !data.text || !data.channel || data.subtype) return;
 
   // Ignore the bots own messages and other bots
-  if (data.user == slack.slackData.self.id || data.user in config.ignoredUsers || data.user == 'USLACKBOT') return;
+  if (data.user == rtm.activeUserId || data.user in config.ignoredUsers || data.user == 'USLACKBOT') return;
 
   if (data.text.charAt(0) == config.prefix) {
-    parseCommand(data.user, data.text, ::slack.getUser).then(resp => {
-      slack.sendMsg(data.channel, resp)
+    parseCommand(data.user, data.text, rtm.dataStore.users).then(resp => {
+      rtm.sendMessage(resp, data.channel)
     })
   } else if ((DEVMODE && data.channel.charAt(0) == 'D') || (!DEVMODE && data.channel.charAt(0) != 'D')) {
     var newMessage = data.text.replace(data.text.match(codeBlockRegex), "")
@@ -68,7 +70,7 @@ slack.on('message', data => {
 })
 
 // Update our cache of custom emoji if any change
-slack.on('emoji_changed', data => {
+rtm.on(RTM_EVENTS.EMOJI_CHANGED, data => {
   console.log(_moment(), 'on_emoji_change', data)
   if (!data.subtype) return getCustomEmoji() // If no subtype slack suggests fetching the whole list again
   else if (data.subtype == 'remove') {
@@ -130,23 +132,21 @@ const postMessage = message => needle.post('https://slack.com/api/chat.postMessa
   token: config.slackBotToken
 })
 
-// Catch shit
-slack.on('error', data => {
-  if (typeof data == 'object' && data.ok) return
-  console.error(_moment(), 'SlackAPI Error - Error', data)
-  sendErrorToDebugChannel('slackAPIError', data)
-  setTimeout(() => process.exit(1), 1000)
+rtm.on(CLIENT_EVENTS.RTM.DISCONNECT, () => {
+  console.error(_moment(), 'SlackRTM Error - Disconnected')
+  sendErrorToDebugChannel('disconnect', 'Disconnected from SlackRTM')
+  setTimeout(() => process.exit(1), 1500)
 })
 
-slack.on('close', data => {
-  console.error(_moment(), 'SlackAPI Error - Closed Connection', data)
-  sendErrorToDebugChannel('closedConnection', data)
-  setTimeout(() => process.exit(1), 1000)
+rtm.on(CLIENT_EVENTS.RTM.UNABLE_TO_RTM_START, () => {
+  console.error(_moment(), 'SlackRTM Error - Unable to connect to RTM')
+  sendErrorToDebugChannel('unableToRTMStart', 'Unable to connect to RTM')
+  setTimeout(() => process.exit(1), 2500)
 })
 
 process.on('uncaughtException', err => {
   sendErrorToDebugChannel('uncaughtException', err)
-  setTimeout(() => process.exit(1), 1000)
+  setTimeout(() => process.exit(1), 1500)
 })
 
 process.on('unhandledRejection', err => sendErrorToDebugChannel('unhandledRejection', err))
