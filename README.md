@@ -9,7 +9,7 @@ Tracks when Emojis are used and shit
 ##### Dev Mode
 ```gulp start-dev```
 ##### Build and run
-```gulp build``` and ```node index.js```
+```gulp build``` and ```node emojitracker.js```
 ##### Running forever
 You can use the `forever` npm module to run this bot  
 in the background forever using the command:  
