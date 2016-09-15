@@ -29,7 +29,7 @@ export default function parseCommand(user, text, users) {
         break;
       case 'emojistats':
         if (context) {
-          let emoji = context.startsWith(':') ? emoji.slice(1, -1).split('::')[0] : context
+          let emoji = context.startsWith(':') ? context.slice(1, -1).split('::')[0] : context
           executeQuery('SELECT COUNT(*) as count FROM Emoji WHERE name = \'' + emoji + '\'').then(cnt => {
             executeQuery('SELECT user, date, name from Emoji WHERE name = \'' + emoji + '\' GROUP BY user ORDER BY date DESC LIMIT 3').then(usrs => {
               try {
