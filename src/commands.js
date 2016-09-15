@@ -4,6 +4,8 @@ import moment from 'moment'
 import { executeQuery } from './database'
 import _ from 'lodash'
 
+
+
 export default function parseCommand(user, text, users) {
   return new Promise(resolve => {
     let command = text.substring(1).split(' ')[0]
@@ -26,17 +28,39 @@ export default function parseCommand(user, text, users) {
         })
         break;
       case 'emojistats':
-        executeQuery('SELECT COUNT(*) as total, COUNT(DISTINCT name) as count FROM Emoji').then(count => {
-          executeQuery('SELECT user, date, name from Emoji ORDER BY date DESC LIMIT 1').then(user => {
-            try {
-              let stats = Object.assign(count.next().row, user.next().row)
-              return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? _.get(users, stats.user + '.name', 'Unknown') : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
-            } catch (e) {
-              console.error(_moment(), "Error returning emoji stats, either there is no stats or something went horribly wrong \n ## ERROR \n", e, '\n # END ERROR')
-              return resolve("Error parsing stats")
-            }
+        if (context) {
+          let emoji = context.startsWith(':') ? emoji.slice(1, -1).split('::')[0] : context
+          executeQuery('SELECT COUNT(*) as count FROM Emoji WHERE name = \'' + emoji + '\'').then(cnt => {
+            executeQuery('SELECT user, date, name from Emoji WHERE name = \'' + emoji + '\' GROUP BY user ORDER BY date DESC LIMIT 3').then(usrs => {
+              try {
+                let count = cnt.next().row.count
+                if (!count) return resolve("I have no data for this emoji")
+                let out = [`*Emoji :${emoji}: has been used ${count} time${count > 1 ? 's' : ''}*`]
+                if (usrs.rs.rows.length) {
+                  out.push("*It was last used by:*")
+                  usrs.rs.rows._array.forEach(u => {
+                    out.push(` - ${_.get(users, [u.user, 'name'], 'Unknown')} ${moment(u.date).isValid() ? moment().to(u.date) : 'unknown time ago'}`)
+                  })
+                }
+                return resolve(out.join('\n'))
+              } catch (e) {
+                return resolve("Something went wrong :(")
+              }
+            })
           })
-        })
+        } else {
+          executeQuery('SELECT COUNT(*) as total, COUNT(DISTINCT name) as count FROM Emoji').then(count => {
+            executeQuery('SELECT user, date, name from Emoji ORDER BY date DESC LIMIT 1').then(user => {
+              try {
+                let stats = Object.assign({}, count.next().row, user.next().row)
+                return resolve(`I have recorded ${stats.count} different Emojis being used ${stats.total} times with the last Emoji being :${stats.name}: from ${stats.user ? _.get(users, stats.user + '.name', 'Unknown') : 'Unknown'} ${moment(stats.date).isValid() ? moment().to(stats.date) : 'unknown time ago'}`)
+              } catch (e) {
+                console.error(_moment(), "Error returning emoji stats, either there is no stats or something went horribly wrong \n ## ERROR \n", e, '\n # END ERROR')
+                return resolve("Error parsing stats")
+              }
+            })
+          })
+        }
         break;
       case 'useremojistats':
       case 'useremoji':
