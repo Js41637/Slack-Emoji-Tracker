@@ -72,12 +72,12 @@ export default function parseCommand(user, text, users) {
           let dude = id ? users[id] : _.find(users, { name: context })
           let limit = 6
           if (!dude) return resolve("No user by dat name m8")
-          executeQuery('SELECT name, date from Emoji WHERE user = \'' + dude.id + '\' ORDER BY date DESC LIMIT 1').then(newest => {
+          executeQuery('SELECT name, date, count(*) as count from Emoji WHERE user = \'' + dude.id + '\' ORDER BY date DESC LIMIT 1').then(newest => {
             executeQuery('SELECT name, COUNT(*) as count from Emoji WHERE user = \'' + dude.id + '\' GROUP BY name ORDER BY COUNT(*) DESC LIMIT ' + limit).then(top => {
               try {
                 let latest = newest.next().row
                 let topemoji = top.rs.rows._array
-                let out = [`*Emoji Statistics for ${dude.name}:* \n *Last Used*: :${latest.name}:  about ${moment().to(latest.date)} \n *Top ${topemoji.length} most used Emoji*:`]
+                let out = [`*Emoji Statistics for ${dude.name}:* \n *Total Emoji Used:* ${latest.count} \n *Last Used*: :${latest.name}: about ${moment().to(latest.date)} \n *Top ${topemoji.length} most used Emoji*:`]
                 topemoji.forEach(e => {
                   out.push(`:${e.name}: - ${e.count}`)
                 })
