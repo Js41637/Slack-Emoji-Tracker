@@ -26,9 +26,9 @@ gulp.task('clean-build', () => gulp.src('build', { read: false }).pipe(rimraf())
 
 gulp.task('watch-build', () => gulp.watch('src/**/*', ['build', server.restart]))
 
-gulp.task('sloth:start', () => server.listen({ path: './index.js' }))
+gulp.task('sloth:start', () => server.listen({ path: './emojitracker.js' }))
 
-gulp.task('sloth:start-dev', () => server.listen({ path: './index.js', args: ['--dev'] }))
+gulp.task('sloth:start-dev', () => server.listen({ path: './emojitracker.js', args: ['--dev'] }))
 
 /* Watch Tasks */
 

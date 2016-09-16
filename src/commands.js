@@ -31,13 +31,13 @@ export default function parseCommand(user, text, users) {
         if (context) {
           let emoji = context.startsWith(':') ? context.slice(1, -1).split('::')[0] : context
           executeQuery('SELECT COUNT(*) as count FROM Emoji WHERE name = \'' + emoji + '\'').then(cnt => {
-            executeQuery('SELECT user, date, name from Emoji WHERE name = \'' + emoji + '\' GROUP BY user ORDER BY date DESC LIMIT 3').then(usrs => {
+            executeQuery('SELECT user, date, name from Emoji WHERE name = \'' + emoji + '\' ORDER BY date DESC LIMIT 4').then(usrs => {
               try {
                 let count = cnt.next().row.count
                 if (!count) return resolve("I have no data for this emoji")
                 let out = [`*Emoji :${emoji}: has been used ${count} time${count > 1 ? 's' : ''}*`]
                 if (usrs.rs.rows.length) {
-                  out.push("*It was last used by:*")
+                  out.push("*Recent uses:*")
                   usrs.rs.rows._array.forEach(u => {
                     out.push(` - ${_.get(users, [u.user, 'name'], 'Unknown')} ${moment(u.date).isValid() ? moment().to(u.date) : 'unknown time ago'}`)
                   })
