@@ -84,15 +84,23 @@ rtm.on(RTM_EVENTS.EMOJI_CHANGED, data => {
 })
 
 // Grab any Custom Emoji on a team
-const getCustomEmoji = (attempt) => {
+var attempts = 0
+const getCustomEmoji = () => {
   console.log(_moment(), 'getCustomEmoji')
   needle.get(`https://slack.com/api/emoji.list?token=${config.slackBotToken}`, (err, resp, body) => {
     if (!err && body.ok) {
+      attempts = 0
       emojiList = originalEmojiList // reset emoji list
       Object.assign(emojiList, body.emoji)
     } else {
-      if (!attempt) getCustomEmoji(true)
-      else console.error(_moment(), "Error fetching custom emojis", err || body.error)
+      console.error(_moment(), "Error fetching custom emojis", err || body.error)
+      if (attempts < 4) {
+        attempts++;
+        setTimeout(() => { getCustomEmoji() }, 1500)
+      } else {
+        console.log("Failed to fetch custom emoji after 4 tries, rebooting")
+        setTimeout(() => { process.exit(1) }, 4000)
+      }
     }
   })
 }
@@ -135,18 +143,18 @@ const postMessage = message => needle.post('https://slack.com/api/chat.postMessa
 rtm.on(CLIENT_EVENTS.RTM.DISCONNECT, () => {
   console.error(_moment(), 'SlackRTM Error - Disconnected')
   sendErrorToDebugChannel('disconnect', 'Disconnected from SlackRTM')
-  setTimeout(() => process.exit(1), 1500)
+  setTimeout(() => { process.exit(1) }, 4000)
 })
 
 rtm.on(CLIENT_EVENTS.RTM.UNABLE_TO_RTM_START, () => {
   console.error(_moment(), 'SlackRTM Error - Unable to connect to RTM')
   sendErrorToDebugChannel('unableToRTMStart', 'Unable to connect to RTM')
-  setTimeout(() => process.exit(1), 2500)
+  setTimeout(() => { process.exit(1) }, 4000)
 })
 
 process.on('uncaughtException', err => {
   sendErrorToDebugChannel('uncaughtException', err)
-  setTimeout(() => process.exit(1), 1500)
+  setTimeout(() => { process.exit(1) }, 4000)
 })
 
 process.on('unhandledRejection', err => sendErrorToDebugChannel('unhandledRejection', err))
